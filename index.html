@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超级马里奥HTML5版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Press Start 2P', cursive, Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #1a2980, #26d0ce);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 800px;
+            max-width: 95%;
+            text-align: center;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: #8B4513;
+            border: 4px solid #5D2906;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .score-board, .lives-board, .coins-board {
+            background-color: #FFD700;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 3px solid #D4AF37;
+            font-size: 20px;
+            color: #8B0000;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .controls {
+            margin: 15px 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        canvas {
+            background: linear-gradient(to bottom, #87CEEB, #1E90FF);
+            border: 8px solid #5D2906;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 100%;
+        }
+        
+        .game-title {
+            color: #FFD700;
+            text-shadow: 3px 3px 0 #8B0000, 6px 6px 0 rgba(0, 0, 0, 0.2);
+            font-size: 36px;
+            margin: 20px 0;
+            letter-spacing: 3px;
+            text-align: center;
+        }
+        
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            border-radius: 10px;
+            z-index: 10;
+        }
+        
+        .btn {
+            background: linear-gradient(to bottom, #FFD700, #FFA500);
+            border: none;
+            padding: 15px 30px;
+            margin: 15px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #8B0000;
+            cursor: pointer;
+            border: 4px solid #D4AF37;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+            background: linear-gradient(to bottom, #FFA500, #FF8C00);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .game-instructions {
+            color: white;
+            background-color: rgba(139, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 500px;
+        }
+        
+        .key {
+            display: inline-block;
+            background-color: #333;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 0 3px;
+            border: 1px solid #555;
+        }
+        
+        .pipe {
+            background: linear-gradient(to right, #228B22, #32CD32);
+            width: 60px;
+            height: 80px;
+            position: absolute;
+            bottom: 20px;
+            right: 100px;
+            border: 4px solid #5D2906;
+            border-bottom: none;
+        }
+        
+        .brick {
+            background: linear-gradient(to bottom, #CD5C5C, #8B0000);
+            width: 40px;
+            height: 40px;
+            border: 3px solid #5D2906;
+            position: absolute;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1 class="game-title">超级马里奥HTML5版</h1>
+    
+    <div class="game-container">
+        <div class="game-header">
+            <div class="score-board">分数: <span id="score">0</span></div>
+            <div class="lives-board">生命: <span id="lives">3</span></div>
+            <div class="coins-board">金币: <span id="coins">0</span></div>
+        </div>
+        
+        <div class="controls">
+            <p>移动: <span class="key">←</span> <span class="key">→</span> | 跳跃: <span class="key">空格</span> | 暂停: <span class="key">P</span></p>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        
+        <div id="startScreen" class="game-overlay">
+            <h2>超级马里奥</h2>
+            <button id="startBtn" class="btn">开始游戏</button>
+            <div class="game-instructions">
+                <p>使用方向键左右移动，空格键跳跃</p>
+                <p>收集金币获得分数，避开敌人</p>
+                <p>跳到敌人头上可以消灭它们</p>
+                <p>收集所有金币进入下一关</p>
+                <p>小心不要掉入空隙中！</p>
+            </div>
+        </div>
+        
+        <div id="gameOverScreen" class="game-overlay hidden">
+            <h2>游戏结束!</h2>
+            <p>最终分数: <span id="finalScore">0</span></p>
+            <button id="restartBtn" class="btn">重新开始</button>
+        </div>
+        
+        <div id="levelCompleteScreen" class="game-overlay hidden">
+            <h2>恭喜过关!</h2>
+            <p>获得分数: <span id="levelScore">0</span></p>
+            <button id="nextLevelBtn" class="btn">下一关</button>
+        </div>
+    </div>
+
+    <script>
+        // 获取Canvas和上下文
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 游戏状态
+        const gameState = {
+            score: 0,
+            lives: 3,
+            coins: 0,
+            gameRunning: false,
+            gameOver: false,
+            gravity: 0.6,
+            keys: {},
+            currentLevel: 1,
+            totalCoins: 0
+        };
+        
+        // 玩家角色
+        const player = {
+            x: 50,
+            y: 300,
+            width: 30,
+            height: 40,
+            speed: 5,
+            velX: 0,
+            velY: 0,
+            jumping: false,
+            grounded: false,
+            facingRight: true
+        };
+        
+        // 游戏对象
+        let platforms = [];
+        let enemies = [];
+        let coins = [];
+        let pipes = [];
+        let bricks = [];
+        
+        // 关卡设计
+        const levels = [
+            {
+                platforms: [
+                    {x: 0, y: 380, width: 800, height: 20, color: '#8B4513', type: 'ground'},
+                    {x: 200, y: 300, width: 100, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 400, y: 250, width: 100, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 600, y: 200, width: 100, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 100, y: 200, width: 80, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 300, y: 150, width: 80, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 550, y: 100, width: 80, height: 20, color: '#32CD32', type: 'platform'}
+                ],
+                enemies: [
+                    {x: 300, y: 340, width: 30, height: 30, speed: 2, color: '#8B0000', dir: 1},
+                    {x: 600, y: 340, width: 30, height: 30, speed: 2, color: '#8B0000', dir: -1}
+                ],
+                pipes: [
+                    {x: 700, y: 320, width: 60, height: 60}
+                ],
+                bricks: [
+                    {x: 250, y: 250, width: 40, height: 40},
+                    {x: 290, y: 250, width: 40, height: 40},
+                    {x: 330, y: 250, width: 40, height: 40},
+                    {x: 450, y: 200, width: 40, height: 40},
+                    {x: 490, y: 200, width: 40, height: 40}
+                ]
+            },
+            {
+                platforms: [
+                    {x: 0, y: 380, width: 800, height: 20, color: '#8B4513', type: 'ground'},
+                    {x: 100, y: 320, width: 80, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 250, y: 280, width: 80, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 400, y: 250, width: 100, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 600, y: 220, width: 80, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 150, y: 200, width: 80, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 350, y: 170, width: 80, height: 20, color: '#32CD32', type: 'platform'},
+                    {x: 550, y: 140, width: 80, height: 20, color: '#32CD32', type: 'platform'}
+                ],
+                enemies: [
+                    {x: 200, y: 340, width: 30, height: 30, speed: 2, color: '#8B0000', dir: 1},
+                    {x: 500, y: 340, width: 30, height: 30, speed: 2, color: '#8B0000', dir: -1},
+                    {x: 650, y: 190, width: 30, height: 30, speed: 2, color: '#8B0000', dir: 1}
+                ],
+                pipes: [
+                    {x: 50, y: 320, width: 60, height: 60},
+                    {x: 700, y: 320, width: 60, height: 60}
+                ],
+                bricks: [
+                    {x: 180, y: 250, width: 40, height: 40},
+                    {x: 220, y: 250, width: 40, height: 40},
+                    {x: 480, y: 180, width: 40, height: 40},
+                    {x: 520, y: 180, width: 40, height: 40},
+                    {x: 560, y: 180, width: 40, height: 40},
+                    {x: 300, y: 120, width: 40, height: 40}
+                ]
+            }
+        ];
+        
+        // 初始化游戏
+        function initGame() {
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.coins = 0;
+            gameState.gameRunning = true;
+            gameState.gameOver = false;
+            gameState.currentLevel = 1;
+            
+            loadLevel(0);
+            
+            player.x = 50;
+            player.y = 300;
+            player.velX = 0;
+            player.velY = 0;
+            
+            updateUI();
+            
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('levelCompleteScreen').classList.add('hidden');
+            
+            gameLoop();
+        }
+        
+        // 加载关卡
+        function loadLevel(levelIndex) {
+            const level = levels[levelIndex];
+            platforms = JSON.parse(JSON.stringify(level.platforms));
+            enemies = JSON.parse(JSON.stringify(level.enemies));
+            pipes = JSON.parse(JSON.stringify(level.pipes));
+            bricks = JSON.parse(JSON.stringify(level.bricks));
+            
+            // 初始化金币
+            coins = [];
+            platforms.forEach(platform => {
+                if (platform.type === 'platform' && platform.width > 60) {
+                    coins.push({
+                        x: platform.x + platform.width/2 - 10,
+                        y: platform.y - 30,
+                        width: 20,
+                        height: 20,
+                        color: '#FFD700',
+                        collected: false
+                    });
+                }
+            });
+            
+            // 在砖块上添加金币
+            bricks.forEach(brick => {
+                coins.push({
+                    x: brick.x + brick.width/2 - 10,
+                    y: brick.y - 30,
+                    width: 20,
+                    height: 20,
+                    color: '#FFD700',
+                    collected: false
+                });
+            });
+            
+            gameState.totalCoins = coins.length;
+        }
+        
+        // 绘制玩家
+        function drawPlayer() {
+            // 身体
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // 帽子
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(player.x - 5, player.y, player.width + 10, 10);
+            ctx.fillRect(player.x + 15, player.y - 10, 10, 10);
+            
+            // 眼睛
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(player.x + (player.facingRight ? 20 : 5), player.y + 10, 5, 5);
+            
+            // 嘴巴
+            ctx.fillStyle = '#FFC0CB';
+            ctx.fillRect(player.x + 10, player.y + 25, 10, 5);
+            
+            // 胡子
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(player.x + 5, player.y + 25, 5, 2);
+            ctx.fillRect(player.x + 20, player.y + 25, 5, 2);
+            
+            // 裤子
+            ctx.fillStyle = '#0000FF';
+            ctx.fillRect(player.x, player.y + 35, player.width, 5);
+        }
+        
+        // 绘制平台
+        function drawPlatforms() {
+            platforms.forEach(platform => {
+                ctx.fillStyle = platform.color;
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                
+                // 添加平台顶部草
+                if (platform.color === '#32CD32') {
+                    ctx.fillStyle = '#228B22';
+                    ctx.fillRect(platform.x, platform.y, platform.width, 5);
+                }
+            });
+        }
+        
+        // 绘制敌人
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                if (enemy.x < -100) return; // 已移除的敌人
+                
+                ctx.fillStyle = enemy.color;
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.width/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 眼睛
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2 + (enemy.dir * 5), enemy.y + enemy.height/2 - 3, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2 + (enemy.dir * 5), enemy.y + enemy.height/2 - 3, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        
+        // 绘制金币
+        function drawCoins() {
+            coins.forEach(coin => {
+                if (!coin.collected) {
+                    ctx.fillStyle = coin.color;
+                    ctx.beginPath();
+                    ctx.arc(coin.x + coin.width/2, coin.y + coin.height/2, coin.width/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#FFA500';
+                    ctx.beginPath();
+                    ctx.arc(coin.x + coin.width/2, coin.y + coin.height/2, coin.width/4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 添加金币闪光效果
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.beginPath();
+                    ctx.arc(coin.x + coin.width/2 - 3, coin.y + coin.height/2 - 3, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+        
+        // 绘制管道
+        function drawPipes() {
+            pipes.forEach(pipe => {
+                // 管道主体
+                ctx.fillStyle = '#32CD32';
+                ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
+                
+                // 管道顶部
+                ctx.fillStyle = '#228B22';
+                ctx.fillRect(pipe.x - 5, pipe.y, pipe.width + 10, 15);
+                
+                // 管道边框
+                ctx.strokeStyle = '#5D2906';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(pipe.x, pipe.y, pipe.width, pipe.height);
+                ctx.strokeRect(pipe.x - 5, pipe.y, pipe.width + 10, 15);
+            });
+        }
+        
+        // 绘制砖块
+        function drawBricks() {
+            bricks.forEach(brick => {
+                ctx.fillStyle = '#CD5C5C';
+                ctx.fillRect(brick.x, brick.y, brick.width, brick.height);
+                
+                // 砖块纹理
+                ctx.strokeStyle = '#8B0000';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(brick.x, brick.y + 10);
+                ctx.lineTo(brick.x + brick.width, brick.y + 10);
+                ctx.moveTo(brick.x, brick.y + 20);
+                ctx.lineTo(brick.x + brick.width, brick.y + 20);
+                ctx.moveTo(brick.x, brick.y + 30);
+                ctx.lineTo(brick.x + brick.width, brick.y + 30);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(brick.x + 10, brick.y);
+                ctx.lineTo(brick.x + 10, brick.y + brick.height);
+                ctx.moveTo(brick.x + 20, brick.y);
+                ctx.lineTo(brick.x + 20, brick.y + brick.height);
+                ctx.moveTo(brick.x + 30, brick.y);
+                ctx.lineTo(brick.x + 30, brick.y + brick.height);
+                ctx.stroke();
+            });
+        }
+        
+        // 更新玩家位置 - 修复了平台碰撞问题
+        function updatePlayer() {
+            // 应用重力
+            player.velY += gameState.gravity;
+            
+            // 应用水平速度
+            player.x += player.velX;
+            
+            // 左右边界检测
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            
+            // 地面检测
+            player.grounded = false;
+            if (player.y + player.height > canvas.height) {
+                player.y = canvas.height - player.height;
+                player.grounded = true;
+                player.jumping = false;
+                player.velY = 0;
+            }
+            
+            // 平台碰撞检测 - 改进版本
+            platforms.forEach(platform => {
+                // 计算玩家和平台之间的碰撞
+                const playerBottom = player.y + player.height;
+                const playerTop = player.y;
+                const platformTop = platform.y;
+                const platformBottom = platform.y + platform.height;
+                
+                const playerRight = player.x + player.width;
+                const playerLeft = player.x;
+                const platformRight = platform.x + platform.width;
+                const platformLeft = platform.x;
+                
+                // 检测垂直碰撞
+                if (playerBottom <= platformBottom && 
+                    playerBottom + player.velY >= platformTop && 
+                    playerRight > platformLeft && 
+                    playerLeft < platformRight) {
+                    
+                    // 玩家在平台上方
+                    player.y = platformTop - player.height;
+                    player.grounded = true;
+                    player.jumping = false;
+                    player.velY = 0;
+                }
+            });
+            
+            // 应用垂直速度
+            player.y += player.velY;
+            
+            // 管道碰撞检测
+            pipes.forEach(pipe => {
+                const playerBottom = player.y + player.height;
+                const playerTop = player.y;
+                const pipeTop = pipe.y;
+                const pipeBottom = pipe.y + pipe.height;
+                
+                const playerRight = player.x + player.width;
+                const playerLeft = player.x;
+                const pipeRight = pipe.x + pipe.width;
+                const pipeLeft = pipe.x;
+                
+                // 检测垂直碰撞
+                if (playerBottom <= pipeBottom && 
+                    playerBottom + player.velY >= pipeTop && 
+                    playerRight > pipeLeft && 
+                    playerLeft < pipeRight) {
+                    
+                    // 玩家在管道上方
+                    player.y = pipeTop - player.height;
+                    player.grounded = true;
+                    player.jumping = false;
+                    player.velY = 0;
+                }
+            });
+            
+            // 砖块碰撞检测
+            bricks.forEach(brick => {
+                const playerBottom = player.y + player.height;
+                const playerTop = player.y;
+                const brickTop = brick.y;
+                const brickBottom = brick.y + brick.height;
+                
+                const playerRight = player.x + player.width;
+                const playerLeft = player.x;
+                const brickRight = brick.x + brick.width;
+                const brickLeft = brick.x;
+                
+                // 检测垂直碰撞
+                if (playerBottom <= brickBottom && 
+                    playerBottom + player.velY >= brickTop && 
+                    playerRight > brickLeft && 
+                    playerLeft < brickRight) {
+                    
+                    // 玩家在砖块上方
+                    player.y = brickTop - player.height;
+                    player.grounded = true;
+                    player.jumping = false;
+                    player.velY = 0;
+                }
+            });
+        }
+        
+        // 更新敌人
+        function updateEnemies() {
+            enemies.forEach(enemy => {
+                if (enemy.x < -100) return; // 已移除的敌人
+                
+                enemy.x += enemy.speed * enemy.dir;
+                
+                // 敌人边界检测
+                if (enemy.x < 0 || enemy.x + enemy.width > canvas.width) {
+                    enemy.dir *= -1;
+                }
+                
+                // 敌人与玩家碰撞检测
+                if (player.x < enemy.x + enemy.width &&
+                    player.x + player.width > enemy.x &&
+                    player.y < enemy.y + enemy.height &&
+                    player.y + player.height > enemy.y) {
+                    
+                    // 如果玩家在敌人上方，消灭敌人
+                    if (player.y + player.height < enemy.y + enemy.height/2 && player.velY > 0) {
+                        enemy.x = -100; // 移除敌人
+                        player.velY = -10; // 反弹
+                        gameState.score += 100;
+                        updateUI();
+                    } else {
+                        // 否则玩家受伤
+                        playerHit();
+                    }
+                }
+            });
+        }
+        
+        // 更新金币
+        function updateCoins() {
+            let coinsCollected = 0;
+            
+            coins.forEach(coin => {
+                if (!coin.collected && 
+                    player.x < coin.x + coin.width &&
+                    player.x + player.width > coin.x &&
+                    player.y < coin.y + coin.height &&
+                    player.y + player.height > coin.y) {
+                    
+                    coin.collected = true;
+                    gameState.coins++;
+                    gameState.score += 50;
+                    updateUI();
+                }
+                
+                if (coin.collected) coinsCollected++;
+            });
+            
+            // 检查是否收集了所有金币
+            if (coinsCollected === gameState.totalCoins && gameState.totalCoins > 0) {
+                levelComplete();
+            }
+        }
+        
+        // 玩家被击中
+        function playerHit() {
+            gameState.lives--;
+            updateUI();
+            
+            if (gameState.lives <= 0) {
+                gameOver();
+            } else {
+                // 重置玩家位置
+                player.x = 50;
+                player.y = 300;
+                player.velX = 0;
+                player.velY = 0;
+            }
+        }
+        
+        // 游戏结束
+        function gameOver() {
+            gameState.gameRunning = false;
+            gameState.gameOver = true;
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+        
+        // 关卡完成
+        function levelComplete() {
+            gameState.gameRunning = false;
+            document.getElementById('levelScore').textContent = gameState.score;
+            document.getElementById('levelCompleteScreen').classList.remove('hidden');
+        }
+        
+        // 进入下一关
+        function nextLevel() {
+            gameState.currentLevel++;
+            
+            if (gameState.currentLevel > levels.length) {
+                // 游戏通关
+                gameState.gameOver = true;
+                document.getElementById('finalScore').textContent = gameState.score;
+                document.getElementById('gameOverScreen').classList.remove('hidden');
+                document.querySelector('#gameOverScreen h2').textContent = '恭喜通关!';
+                return;
+            }
+            
+            loadLevel(gameState.currentLevel - 1);
+            
+            player.x = 50;
+            player.y = 300;
+            player.velX = 0;
+            player.velY = 0;
+            
+            gameState.gameRunning = true;
+            document.getElementById('levelCompleteScreen').classList.add('hidden');
+            
+            gameLoop();
+        }
+        
+        // 更新UI显示
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('lives').textContent = gameState.lives;
+            document.getElementById('coins').textContent = gameState.coins;
+        }
+        
+        // 游戏主循环
+        function gameLoop() {
+            if (!gameState.gameRunning) return;
+            
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制背景
+            drawBackground();
+            
+            // 绘制游戏对象
+            drawPipes();
+            drawBricks();
+            drawPlatforms();
+            drawCoins();
+            drawEnemies();
+            drawPlayer();
+            
+            // 更新游戏对象
+            updatePlayer();
+            updateEnemies();
+            updateCoins();
+            
+            // 继续游戏循环
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 绘制背景
+        function drawBackground() {
+            // 天空
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 云朵
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(100, 70, 20, 0, Math.PI * 2);
+            ctx.arc(130, 70, 25, 0, Math.PI * 2);
+            ctx.arc(160, 70, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(500, 50, 25, 0, Math.PI * 2);
+            ctx.arc(540, 50, 30, 0, Math.PI * 2);
+            ctx.arc(580, 50, 25, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 太阳
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(700, 70, 40, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 远山
+            ctx.fillStyle = '#2E8B57';
+            ctx.beginPath();
+            ctx.moveTo(0, 380);
+            ctx.lineTo(100, 300);
+            ctx.lineTo(200, 350);
+            ctx.lineTo(300, 280);
+            ctx.lineTo(400, 320);
+            ctx.lineTo(500, 270);
+            ctx.lineTo(600, 310);
+            ctx.lineTo(800, 250);
+            ctx.lineTo(800, 380);
+            ctx.lineTo(0, 380);
+            ctx.fill();
+        }
+        
+        // 键盘事件监听
+        window.addEventListener('keydown', function(e) {
+            gameState.keys[e.key] = true;
+            
+            // 空格键跳跃
+            if (e.key === ' ' && player.grounded && gameState.gameRunning) {
+                player.velY = -15;
+                player.jumping = true;
+                player.grounded = false;
+            }
+            
+            // P键暂停
+            if (e.key === 'p' || e.key === 'P') {
+                gameState.gameRunning = !gameState.gameRunning;
+                if (gameState.gameRunning) gameLoop();
+            }
+        });
+        
+        window.addEventListener('keyup', function(e) {
+            gameState.keys[e.key] = false;
+        });
+        
+        // 处理玩家移动
+        function handlePlayerMovement() {
+            player.velX = 0;
+            
+            if (gameState.keys['ArrowLeft']) {
+                player.velX = -player.speed;
+                player.facingRight = false;
+            }
+            
+            if (gameState.keys['ArrowRight']) {
+                player.velX = player.speed;
+                player.facingRight = true;
+            }
+        }
+        
+        // 移动处理循环
+        setInterval(handlePlayerMovement, 1000/60);
+        
+        // 按钮事件监听
+        document.getElementById('startBtn').addEventListener('click', initGame);
+        document.getElementById('restartBtn').addEventListener('click', initGame);
+        document.getElementById('nextLevelBtn').addEventListener('click', nextLevel);
+        
+        // 初始显示开始界面
+        document.getElementById('startScreen').classList.remove('hidden');
+    </script>
+</body>
+</html>
